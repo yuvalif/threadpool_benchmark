@@ -9,7 +9,7 @@ The following implementations are tested:
 
 (3) https://github.com/progschj/ThreadPool
 
-(4) http://www.boost.org/doc/libs/1_62_0/doc/html/thread/synchronization.html#thread.synchronization.executors (no need to clone)
+(4) http://www.boost.org/doc/libs/1_62_0/doc/html/thread/synchronization.html#thread.synchronization.executors (no need to clone, but exists only from boost 1.56)
 
 To build:
 
