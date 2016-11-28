@@ -9,9 +9,11 @@
 #include <chrono>   // for time calculations
 // thread libraries to be tested
 #include "../CTPL/ctpl.h" // for testing CPTL thread pool
-#include "../philipp_henkel/boost/threadpool.hpp" // for testing old boost thread pool
-#include "../jakob_progsch/ThreadPool/ThreadPool.h" // for testing Jakob Progsch thread pool (using thread_group and boost asio under the hood)
-#include <boost/thread/executors/basic_thread_pool.hpp> // for testing new boost thread pool
+#include "../threadpool/boost/threadpool.hpp" // for testing old boost thread pool (by Philippe Henkel)
+#include "../ThreadPool/ThreadPool.h" // for testing thread pool using boost thread_group and asio (by Jakob Progsch)
+#if BOOST_VERSION > 105600
+#include <boost/thread/executors/basic_thread_pool.hpp> // for testing new boost thread pool. copied localy as boost 1.56 and up is needed
+#endif
 
 // the work being done is calculating if a number is prime or no and accumulating the result
 bool IsPrime(unsigned long n)
@@ -55,6 +57,7 @@ void CountIfPrimeBoost(unsigned long n, std::atomic<unsigned long>& count)
 	if (IsPrime(n)) ++count;
 }
 
+#if BOOST_VERSION > 105600
 // using boost's experimental thread pool
 unsigned long count_primes_boost(const std::vector<unsigned long>& random_inputs, unsigned int NUMBER_OF_PROCS)
 {
@@ -76,6 +79,7 @@ unsigned long count_primes_boost(const std::vector<unsigned long>& random_inputs
 
     return number_of_primes;
 }
+#endif
 
 // using Jakob Progsch thread pool (using boost thread_grouop and asio)
 unsigned long count_primes_JP(const std::vector<unsigned long>& random_inputs, unsigned int NUMBER_OF_PROCS)
@@ -202,12 +206,13 @@ int main(int argc, char** argv)
     std::cout << "count_primes_JP:" << number_of_primes << " prime numbers were found. computation took " << 
         std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
 
+#if BOOST_VERSION > 105600
     start = std::chrono::system_clock::now();
     number_of_primes = count_primes_boost(random_inputs, NUMBER_OF_PROC);
     end = std::chrono::system_clock::now();
     std::cout << "count_primes_boost:" << number_of_primes << " prime numbers were found. computation took " << 
         std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
-
+#endif
     return 0;
 }
 
