@@ -12,7 +12,7 @@
 #include "../threadpool/boost/threadpool.hpp" // for testing old boost thread pool (by Philippe Henkel)
 #include "../ThreadPool/ThreadPool.h" // for testing thread pool using boost thread_group and asio (by Jakob Progsch)
 #if BOOST_VERSION > 105600
-#include <boost/thread/executors/basic_thread_pool.hpp> // for testing new boost thread pool. copied localy as boost 1.56 and up is needed
+#include <boost/thread/executors/basic_thread_pool.hpp> // for testing new boost thread pool. available from ver 1.56 and up
 #endif
 
 // the work being done is calculating if a number is prime or no and accumulating the result
