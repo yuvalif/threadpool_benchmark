@@ -10,7 +10,7 @@
 // thread libraries to be tested
 #include "../CTPL/ctpl.h" // for testing CPTL thread pool
 #include "../threadpool/boost/threadpool.hpp" // for testing old boost thread pool (by Philippe Henkel)
-#include "../ThreadPool/ThreadPool.h" // for testing thread pool using boost thread_group and asio (by Jakob Progsch)
+#include "../ThreadPool/ThreadPool.h" // for testing thread pool using Jakob Progsch's thread pool
 #if BOOST_VERSION > 105600
 #include <boost/thread/executors/basic_thread_pool.hpp> // for testing new boost thread pool. available from ver 1.56 and up
 #endif
@@ -18,13 +18,13 @@
 // the work being done is calculating if a number is prime or no and accumulating the result
 bool IsPrime(unsigned long n)
 {
-	// special handle for 0,1,2
-	if (n < 3)
-	{
-		if (n == 2) return true;
-	}
+    // special handle for 0,1,2
+    if (n < 3)
+    {
+	if (n == 2) return true;
+    }
 
-	// no need to check above sqrt(n)
+    // no need to check above sqrt(n)
     const auto N = std::ceil(std::sqrt(n) + 1);
 
     for (auto i = 2; i < N; ++i)
@@ -49,7 +49,6 @@ void CountIfPrimeCTPL(int id, unsigned long n, std::atomic<unsigned long>& count
 {
 	if (IsPrime(n)) ++count;
 }
-
 
 // check if a number is prime and accumulate into a counter - thred safe
 void CountIfPrimeBoost(unsigned long n, std::atomic<unsigned long>& count)
@@ -81,7 +80,7 @@ unsigned long count_primes_boost(const std::vector<unsigned long>& random_inputs
 }
 #endif
 
-// using Jakob Progsch thread pool (using boost thread_grouop and asio)
+// using Jakob Progsch's thread pool
 unsigned long count_primes_JP(const std::vector<unsigned long>& random_inputs, unsigned int NUMBER_OF_PROCS)
 {
     std::atomic<unsigned long> number_of_primes(0);
@@ -215,4 +214,3 @@ int main(int argc, char** argv)
 #endif
     return 0;
 }
-
