@@ -7,7 +7,7 @@ The following implementations are tested:
 
 (2) https://github.com/henkel/threadpool (also from here: http://threadpool.sourceforge.net/index.html)
 
-(3) https://github.com/progschj/ThreadPool (wrapping around boost thread_group and asio)
+(3) https://github.com/progschj/ThreadPool
 
 (4) http://www.boost.org/doc/libs/1_62_0/doc/html/thread/synchronization.html#thread.synchronization.executors (no need to clone, but exists only from boost 1.56)
 
