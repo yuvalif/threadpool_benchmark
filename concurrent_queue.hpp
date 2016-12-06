@@ -24,6 +24,21 @@ class concurrent_queue
             return (size_==0);
         }
 
+        bool try_pop(T& item)
+        {
+            std::unique_lock<std::mutex> mlock(mutex_);
+            while (size_==0)
+            {
+                return false;
+            }
+            item = queue_.front();
+            queue_.pop();
+            --size_;
+            mlock.unlock();
+            full_cond_.notify_one();
+            return true;
+        }
+
         void pop(T& item)
         {
             std::unique_lock<std::mutex> mlock(mutex_);
@@ -51,7 +66,15 @@ class concurrent_queue
             empty_cond_.notify_one();
         }
 
-        concurrent_queue() : size_(0) {}
+        void unblock()
+        {
+            std::unique_lock<std::mutex> mlock(mutex_);
+            size_ = N+1;
+            full_cond_.notify_all();
+            empty_cond_.notify_all();
+        }
+
+        concurrent_queue() : size_(0) { static_assert(N < SIZE_MAX, "max queue size must be smaller than max size_t"); }
         concurrent_queue(const concurrent_queue&) = delete;            // disable copying
         concurrent_queue& operator=(const concurrent_queue&) = delete; // disable assignment
 

@@ -54,13 +54,13 @@ public:
         
         if (wait)
         {
-            while (!m_mailbox.empty())
+            Arg arg;
+            while (m_mailbox.try_pop(arg))
             {
-                Arg arg;
-                m_mailbox.pop(arg);
                 F(arg);
             }
         }
+        m_mailbox.unblock();
         for (auto i = 0; i < m_size; ++i)
         {
             if (wait)
