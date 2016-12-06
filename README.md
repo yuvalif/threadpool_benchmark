@@ -13,6 +13,8 @@ The following implementations are tested:
 
 (5) thread_pool.hpp using boost thread_group and asio. Based on: http://stackoverflow.com/questions/12215395/thread-pool-using-boost-asio code from Tanner Sansbury
 
+(6) Thread pool based on one producer multiple comsumers using a "mailbox" and communicating over condition variables
+
 To build:
 
 ```clang++ -std=c++11 -O3 -Wall -o benchmark_pool benchmark_pool.cpp -lpthread -lboost_thread -lboost_system```
