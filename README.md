@@ -13,7 +13,9 @@ The following implementations are tested:
 
 (5) thread_pool.hpp using boost thread_group and asio. Based on: http://stackoverflow.com/questions/12215395/thread-pool-using-boost-asio code from Tanner Sansbury
 
-(6) Thread pool based on one producer multiple comsumers using a "mailbox" and communicating over condition variables
+(6) Thread pool based on one producer multiple comsumers using a "mailbox" queue synchronized with condition variables. Code for concurrent queue is based on Juan Palacios code from here: https://github.com/juanchopanza/cppblog
+
+(7) Thread pool based on one producer multiple comsumers using a lockfree "mailbox" queue. Using boost lockfree queue: http://www.boost.org/doc/libs/1_62_0/doc/html/boost/lockfree/queue.html
 
 To build:
 
