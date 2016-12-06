@@ -16,6 +16,7 @@
 #endif
 #include "thread_pool.hpp" // for asio based pool
 #include "mailbox_thread_pool.hpp"
+#include "mailbox_thread_pool_lockfree.hpp"
 
 // the work being done is calculating if a number is prime or no and accumulating the result
 bool IsPrime(unsigned long n)
@@ -78,6 +79,23 @@ void CountIfPrime(const PrimeArg& arg)
 	if (IsPrime(arg._n)) ++*(arg._count);
 }
 
+unsigned long count_primes_mailbox_lockfree(const std::vector<unsigned long>& random_inputs, unsigned int NUMBER_OF_PROCS)
+{
+    std::atomic<unsigned long> number_of_primes(0);
+    // thread pool is using the main thread as well
+    mailbox_thread_pool_lockfree<PrimeArg, CountIfPrime> pool(NUMBER_OF_PROCS-1);
+
+	// loop over input to accumulate how many primes are there
+   	std::for_each(random_inputs.begin(), random_inputs.end(), 
+           [&](unsigned long n) 
+   	{
+        pool.submit(PrimeArg(n, &number_of_primes)); 
+    });
+
+    pool.stop(true);
+    return number_of_primes;
+}
+
 unsigned long count_primes_mailbox(const std::vector<unsigned long>& random_inputs, unsigned int NUMBER_OF_PROCS)
 {
     std::atomic<unsigned long> number_of_primes(0);
@@ -90,7 +108,7 @@ unsigned long count_primes_mailbox(const std::vector<unsigned long>& random_inpu
         pool.submit(PrimeArg(n, &number_of_primes)); 
     });
 
-    //pool.stop();
+    pool.stop(true);
     return number_of_primes;
 }
 
@@ -280,6 +298,12 @@ int main(int argc, char** argv)
     number_of_primes = count_primes_mailbox(random_inputs, NUMBER_OF_PROC);
     end = std::chrono::system_clock::now();
     std::cout << "count_primes_mailbox:" << number_of_primes << " prime numbers were found. computation took " << 
+        std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
+
+    start = std::chrono::system_clock::now();
+    number_of_primes = count_primes_mailbox_lockfree(random_inputs, NUMBER_OF_PROC);
+    end = std::chrono::system_clock::now();
+    std::cout << "count_primes_mailbox_lockfree:" << number_of_primes << " prime numbers were found. computation took " << 
         std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
 
     return 0;
