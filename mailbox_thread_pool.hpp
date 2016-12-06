@@ -41,7 +41,7 @@ public:
                     Arg arg;
                     {
                         std::unique_lock<std::mutex> lock(m_mutex);
-                        while (m_mailbox == boost::none) m_worker_condition.wait(lock);
+                        while (!m_mailbox) m_worker_condition.wait(lock);
                         if (m_done) break;
                         arg = *m_mailbox;
                         m_mailbox = boost::none;
@@ -60,7 +60,7 @@ public:
 	{
 	    {
             std::unique_lock<std::mutex> lock(m_mutex);
-            while (m_mailbox != boost::none) m_submitter_condition.wait(lock);
+            while (m_mailbox) m_submitter_condition.wait(lock);
             m_mailbox = arg;
         }
         // notify that mailbox is full, one of the threads should wake up
