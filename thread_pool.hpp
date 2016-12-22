@@ -5,7 +5,7 @@
 #include <boost/thread.hpp>
 #include <atomic>
 
-class thread_pool
+class asio_thread_pool
 {
 private:
     boost::asio::io_service io_service_;
@@ -16,7 +16,7 @@ private:
 public:
 
     /// @brief Constructor.
-    thread_pool( std::size_t pool_size )
+    asio_thread_pool( std::size_t pool_size )
         : work_( io_service_ ),
         available_( pool_size )
     {
@@ -28,7 +28,7 @@ public:
     }
 
     /// @brief Destructor.
-    ~thread_pool()
+    ~asio_thread_pool()
     {
         // Force all threads to return from io_service::run().
         io_service_.stop();
@@ -52,7 +52,7 @@ public:
         --available_;
 
         // Post a wrapped task into the queue.
-        io_service_.post( boost::bind( &thread_pool::wrap_task, this,
+        io_service_.post( boost::bind( &asio_thread_pool::wrap_task, this,
                     boost::function< void() >( task ) ) );
 
         return true;
