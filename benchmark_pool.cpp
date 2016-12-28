@@ -73,7 +73,7 @@ struct PrimeArg
 
 
 // check if a number is prime and accumulate into a counter - thred safe
-void CountIfPrime(const PrimeArg& arg)
+void CountIfPrimeArg(const PrimeArg& arg)
 {
     if (arg._count == nullptr) return;
 	if (IsPrime(arg._n)) ++*(arg._count);
@@ -83,7 +83,7 @@ unsigned long count_primes_mailbox_lockfree(const std::vector<unsigned long>& ra
 {
     std::atomic<unsigned long> number_of_primes(0);
     // thread pool is using the main thread as well
-    thread_pool_lockfree<PrimeArg, CountIfPrime> pool(NUMBER_OF_PROCS, 0);
+    thread_pool_lockfree<PrimeArg, CountIfPrimeArg> pool(NUMBER_OF_PROCS, 0);
 
 	// loop over input to accumulate how many primes are there
    	std::for_each(random_inputs.begin(), random_inputs.end(), 
@@ -99,7 +99,8 @@ unsigned long count_primes_mailbox_lockfree(const std::vector<unsigned long>& ra
 unsigned long count_primes_mailbox(const std::vector<unsigned long>& random_inputs, unsigned int NUMBER_OF_PROCS)
 {
     std::atomic<unsigned long> number_of_primes(0);
-    thread_pool<PrimeArg, CountIfPrime> pool(NUMBER_OF_PROCS);
+    std::function<void(const PrimeArg&)> func(CountIfPrimeArg);
+    thread_pool<PrimeArg> pool(NUMBER_OF_PROCS, func);
 
 	// loop over input to accumulate how many primes are there
    	std::for_each(random_inputs.begin(), random_inputs.end(), 
