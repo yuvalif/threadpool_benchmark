@@ -10,22 +10,32 @@ template<typename Arg, std::size_t QSIZE=512>
 class thread_pool
 {
 private:
-    std::size_t m_number_of_workers;
+    //! number of worker threads
+    const std::size_t m_number_of_workers;
+    //! internal state indicating that processing of existing work should finish
+    //! and no new work should be submitted
     volatile bool m_done;
+    //! queue of work items
     std::queue<Arg> m_queue;
+    //! mutex used by the empty/full conditions and related variables
     std::mutex m_mutex;
+    //! condition used to signal that queue is empty or not empty
     std::condition_variable m_empty_cond;
+    //! condition used to signal that queue is full or not full
     std::condition_variable m_full_cond;
+    //! the actual worker threads
     std::vector<std::thread> m_workers;
 
+    //! this is the function executed by the worker threads
+    //! it pull items ot of the queue until signaled to stop
     void worker(std::function<void(const Arg&)> F)
     {
-        while (true)
+        while (true) 
         {
             Arg arg;
             {
-                std::unique_lock<std::mutex> mlock(m_mutex);
-                // if queue is not empty we continue regardless of "done" indication
+                std::unique_lock<std::mutex> lock(m_mutex);
+                // if queue is not empty we continue regardless or "done" indication
                 if (m_queue.empty())
                 {
                     // queue is empty
@@ -40,7 +50,7 @@ private:
                         // wait to get notified, either on queue not empty of being done
                         while (!m_done && m_queue.empty())
                         {
-                            m_empty_cond.wait(mlock);
+                            m_empty_cond.wait(lock);
                         }
                         if (m_queue.empty())
                         {
@@ -54,6 +64,7 @@ private:
                arg = m_queue.front();
                m_queue.pop();
             }
+
             // notify that queue is not full
             m_full_cond.notify_one();
             // execute the work when the mutex is not locked
@@ -76,7 +87,7 @@ public:
     }
 
     //! constructor spawn the threads
-    thread_pool(std::size_t number_of_workers, std::function<void(const Arg&)> F) :
+    thread_pool(std::size_t number_of_workers, std::function<void(const Arg&)> F) : 
         m_number_of_workers(number_of_workers),
         m_done(false)
     {
@@ -92,9 +103,15 @@ public:
     void submit(const Arg& arg)
     {
         {
-            std::unique_lock<std::mutex> mlock(m_mutex);
-            while (!m_done && m_queue.size() == QSIZE) m_full_cond.wait(mlock);
-            if (m_done) return;
+            std::unique_lock<std::mutex> lock(m_mutex);
+            while (!m_done && m_queue.size() == QSIZE) 
+            {
+                m_full_cond.wait(lock);
+            }
+            if (m_done)
+            {
+                return;
+            }
             m_queue.push(arg);
         }
         m_empty_cond.notify_one();
@@ -105,8 +122,11 @@ public:
     bool try_submit(const Arg& arg)
     {
         {
-            std::unique_lock<std::mutex> mlock(m_mutex);
-            if (m_done || m_queue.size() == QSIZE) return false;
+            std::unique_lock<std::mutex> lock(m_mutex);
+            if (m_done || m_queue.size() == QSIZE) 
+            {
+                return false;
+            }
             m_queue.push(arg);
         }
         m_empty_cond.notify_one();
@@ -119,13 +139,13 @@ public:
         {
             // take lock to make sure worker threads are either waiting
             // or processing, and will check on m_done before next iteration
-            std::unique_lock<std::mutex> mlock(m_mutex);
+            std::unique_lock<std::mutex> lock(m_mutex);
             // dont allow new submitions
             m_done = true;
             if (!wait)
             {
                 // drain the queue without running F on it
-                while (!m_queue.empty())
+                while (!m_queue.empty()) 
                 {
                     m_queue.pop();
                 }
@@ -142,4 +162,4 @@ public:
         }
     }
 };
-
+ 
