@@ -222,6 +222,7 @@ public:
                 }
             }
         }
+        assert(actual_q < m_number_of_workers);
         m_empty_conds[actual_q].notify_one();
         return true;
     }
