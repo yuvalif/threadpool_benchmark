@@ -21,15 +21,14 @@ private:
     std::vector<std::queue<Arg> > m_queues;
     //! mutex used by the empty/full conditions and related variables
     std::mutex m_mutex;
-    //! condition used to signal that queue is empty or not empty
-    std::condition_variable m_empty_cond;
-    //! condition used to signal that queue is full or not full
-    std::condition_variable m_full_cond;
+    //! condition used to signal if a queue is empty or not empty
+    std::vector<std::condition_variable> m_empty_conds;
+    //! condition used to signal if a queue is full or not full
+    std::vector<std::condition_variable> m_full_conds;
     //! the actual worker threads
     std::vector<std::thread> m_workers;
-    //! round robin index of the worker thread to use in case
-    //! of no affinity work submitted (blocking) when all queues 
-    //! are full
+    //! round robin index of the worker thread to use in case of no 
+    //! affinity work submitted (blocking) when all queues are full
     std::size_t m_rr_worker_id;
 
     //! this is the function executed by the worker threads
@@ -38,6 +37,8 @@ private:
     {
         assert(worker_id < m_number_of_workers);
         std::queue<Arg>& q = m_queues[worker_id];
+        std::condition_variable& empty_cond = m_empty_conds[worker_id];
+        std::condition_variable& full_cond = m_full_conds[worker_id];
 
         while (true) 
         {
@@ -59,7 +60,7 @@ private:
                         // wait to get notified, either on queue not empty of being done
                         while (!m_done && q.empty())
                         {
-                            m_empty_cond.wait(lock);
+                            empty_cond.wait(lock);
                         }
                         if (q.empty())
                         {
@@ -75,7 +76,7 @@ private:
             }
 
             // notify that queue is not full
-            m_full_cond.notify_one();
+            full_cond.notify_one();
             // execute the work when the mutex is not locked
             F(arg);
         }
@@ -103,6 +104,8 @@ public:
         m_number_of_workers(number_of_workers),
         m_done(false),
         m_queues(number_of_workers),
+        m_empty_conds(number_of_workers),
+        m_full_conds(number_of_workers),
         m_rr_worker_id(0)
     {
         for (auto i = 0; i < m_number_of_workers; ++i)
@@ -116,6 +119,7 @@ public:
     //! blocking call
     void submit(const Arg& arg, int worker_id = NoAffinity)
     {
+        std::size_t actual_q = static_cast<std::size_t>(worker_id);
         assert(worker_id < static_cast<int>(m_number_of_workers) && worker_id >= NoAffinity);
         {
             std::unique_lock<std::mutex> lock(m_mutex);
@@ -133,6 +137,7 @@ public:
                     {
                         m_queues[i].push(arg);
                         pushed = true;
+                        actual_q = i;
                         break;
                     }
                 }
@@ -143,7 +148,7 @@ public:
                     m_rr_worker_id = (m_rr_worker_id+1)%m_number_of_workers;
                     while (!m_done && m_queues[m_rr_worker_id].size() == QSIZE) 
                     {
-                        m_full_cond.wait(lock);
+                        m_full_conds[m_rr_worker_id].wait(lock);
                     }
                     if (m_done)
                     {
@@ -151,6 +156,7 @@ public:
                         return;
                     }
                     m_queues[m_rr_worker_id].push(arg);
+                    actual_q = m_rr_worker_id;
                 }
             }
             else
@@ -158,7 +164,7 @@ public:
                 // has affinity, try using a specific worker
                 while (!m_done && m_queues[worker_id].size() == QSIZE) 
                 {
-                    m_full_cond.wait(lock);
+                    m_full_conds[worker_id].wait(lock);
                 }
                 if (m_done)
                 {
@@ -168,13 +174,15 @@ public:
                 m_queues[worker_id].push(arg);
             }
         }
-        m_empty_cond.notify_one();
+        assert(actual_q < m_number_of_workers);
+        m_empty_conds[actual_q].notify_one();
     }
 
     //! submit new argument to be processed by the threads if queue has space
     //! non-blocking call
     bool try_submit(const Arg& arg, int worker_id = NoAffinity)
     {
+        std::size_t actual_q = static_cast<std::size_t>(worker_id);
         assert(worker_id < static_cast<int>(m_number_of_workers) && worker_id >= NoAffinity);
         {
             std::unique_lock<std::mutex> lock(m_mutex);
@@ -214,7 +222,7 @@ public:
                 }
             }
         }
-        m_empty_cond.notify_one();
+        m_empty_conds[actual_q].notify_one();
         return true;
     }
 
@@ -241,8 +249,11 @@ public:
         }
 
         // notify all that we are done
-        m_empty_cond.notify_all();
-        m_full_cond.notify_all();
+        for (auto i = 0; i < m_number_of_workers; ++i)
+        {
+            m_empty_conds[i].notify_all();
+            m_full_conds[i].notify_all();
+        }
 
         for (auto i = 0; i < m_number_of_workers; ++i)
         {
