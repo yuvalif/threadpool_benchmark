@@ -133,11 +133,15 @@ public:
                 bool pushed = false;
                 for (auto i = 0; i < m_number_of_workers; ++i)
                 {
-                    if (m_queues[i].size() < QSIZE)
+                    // dont start from firts q
+                    // start fron an arbitrary queue in round robin manner
+                    const std::size_t q_idx = (m_rr_worker_id+i)%m_number_of_workers;
+                    if (m_queues[q_idx].size() < QSIZE)
                     {
-                        m_queues[i].push(arg);
+                        m_queues[q_idx].push(arg);
                         pushed = true;
-                        actual_q = i;
+                        actual_q = q_idx;
+
                         break;
                     }
                 }
@@ -145,7 +149,6 @@ public:
                 {
                     // all queues were busy
                     // wait on arbitrary queue in round robin manner
-                    m_rr_worker_id = (m_rr_worker_id+1)%m_number_of_workers;
                     while (!m_done && m_queues[m_rr_worker_id].size() == QSIZE) 
                     {
                         m_full_conds[m_rr_worker_id].wait(lock);
@@ -158,6 +161,8 @@ public:
                     m_queues[m_rr_worker_id].push(arg);
                     actual_q = m_rr_worker_id;
                 }
+                // increment the round robin index
+                m_rr_worker_id = (m_rr_worker_id+1)%m_number_of_workers;
             }
             else
             {

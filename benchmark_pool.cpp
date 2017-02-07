@@ -126,7 +126,8 @@ unsigned long count_primes_affinity(const std::vector<unsigned long>& random_inp
    	{
         if (with_affinity)
         {
-            int affinity = std::rand()%(NUMBER_OF_PROCS);
+            int affinity = std::rand()%(NUMBER_OF_PROCS+1);
+            if (affinity == NUMBER_OF_PROCS) affinity = affinity_thread_pool<PrimeArg>::NoAffinity;
             pool.submit(PrimeArg(n, &number_of_primes), affinity);
         }
         else
