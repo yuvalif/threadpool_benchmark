@@ -31,4 +31,5 @@ To run:
 To test the mailbox thread pool for race conditions, use the following to build:
 
 ```clang++ -std=c++11 -O3 -fsanitize=thread -Wall -o test_mailbox_pool test_mailbox_pool.cpp -lpthread -lboost_thread -lboost_system```
+
 (use clang++, as g++ is having some issues, at least for gcc4.8.5)
