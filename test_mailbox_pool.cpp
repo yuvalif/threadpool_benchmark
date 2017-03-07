@@ -9,6 +9,7 @@
 #include <chrono>   // for time calculations
 #include "mailbox_thread_pool.hpp"
 #include "affinity_thread_pool.h"
+#include "affinity_thread_pool_lockfree.h"
 
 // the work being done is calculating if a number is prime or no and accumulating the result
 bool IsPrime(unsigned long n)
@@ -102,6 +103,34 @@ unsigned long count_primes_affinity(const std::vector<unsigned long>& random_inp
     return number_of_primes;
 }
 
+unsigned long count_primes_affinity_lockfree(const std::vector<unsigned long>& random_inputs, unsigned int NUMBER_OF_PROCS,
+        bool with_affinity,
+        unsigned wait_time)
+{
+    std::atomic<unsigned long> number_of_primes(0);
+    std::function<void(const PrimeArg&)> func(CountIfPrimeArg);
+    affinity_thread_pool_lockfree<PrimeArg> pool(NUMBER_OF_PROCS, func, wait_time);
+
+    // loop over input to accumulate how many primes are there
+    std::for_each(random_inputs.begin(), random_inputs.end(),
+           [&](unsigned long n)
+    {
+        if (with_affinity)
+        {
+            int affinity = std::rand()%(NUMBER_OF_PROCS+1);
+            if (affinity == NUMBER_OF_PROCS) affinity = affinity_thread_pool<PrimeArg>::NoAffinity;
+            pool.submit(PrimeArg(n, &number_of_primes), affinity);
+        }
+        else
+        {
+            pool.submit(PrimeArg(n, &number_of_primes));
+        }
+    });
+
+    pool.stop(true);
+    return number_of_primes;
+}
+
 // single threaded calculation of primes
 unsigned long count_primes(const std::vector<unsigned long>& random_inputs)
 {
@@ -166,6 +195,31 @@ int main(int argc, char** argv)
     number_of_primes = count_primes_affinity(random_inputs, NUMBER_OF_PROC, true);
     end = std::chrono::system_clock::now();
     std::cout << "count_primes_affinity-with-affinity:" << number_of_primes << " prime numbers were found. computation took " << 
+        std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
+  unsigned wait_time = 0;
+    start = std::chrono::system_clock::now();
+    number_of_primes = count_primes_affinity_lockfree(random_inputs, NUMBER_OF_PROC, false, wait_time);
+    end = std::chrono::system_clock::now();
+    std::cout << "count_primes_affinity_lockfree-no-affinity-busy:" << number_of_primes << " prime numbers were found. computation took " <<
+        std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
+
+    start = std::chrono::system_clock::now();
+    number_of_primes = count_primes_affinity_lockfree(random_inputs, NUMBER_OF_PROC, true, wait_time);
+    end = std::chrono::system_clock::now();
+    std::cout << "count_primes_affinity_lockfree-with-affinity-busy:" << number_of_primes << " prime numbers were found. computation took " <<
+        std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
+
+    wait_time = 10;
+    start = std::chrono::system_clock::now();
+    number_of_primes = count_primes_affinity_lockfree(random_inputs, NUMBER_OF_PROC, false, wait_time);
+    end = std::chrono::system_clock::now();
+    std::cout << "count_primes_affinity_lockfree-no-affinity-10usec:" << number_of_primes << " prime numbers were found. computation took " <<
+        std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
+
+    start = std::chrono::system_clock::now();
+    number_of_primes = count_primes_affinity_lockfree(random_inputs, NUMBER_OF_PROC, true, wait_time);
+    end = std::chrono::system_clock::now();
+    std::cout << "count_primes_affinity_lockfree-with-affinity-10usec:" << number_of_primes << " prime numbers were found. computation took " <<
         std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count()/INPUT_SIZE  << " nanosec per iteration" << std::endl;
 
     return 0;

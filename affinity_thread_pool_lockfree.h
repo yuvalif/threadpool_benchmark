@@ -17,7 +17,7 @@ private:
     //! time to wait when idle (useconds)
     const unsigned long m_wait_time;
     //! indication that the pool should not receive new Args
-    /*std::atomic<bool>*/ volatile bool m_done;
+    volatile bool m_done;
     //! queues of work items, one for each worker
     typedef boost::lockfree::queue<Arg, boost::lockfree::fixed_sized<true>, boost::lockfree::capacity<QSIZE> > queue_t;
     std::vector<queue_t> m_queues;
@@ -52,7 +52,6 @@ private:
             F(arg);
         }
     }
-
 public:
 
     //! indicating that work may be executed on any thread
@@ -102,6 +101,8 @@ public:
         {
             // no affinity, find a free queue
             bool pushed = false;
+            // increment the round robin index every time we use it
+            m_rr_worker_id = (m_rr_worker_id+1)%m_number_of_workers;
             // cache the atomic variable before the busy wait loop
             const std::size_t rr_worker_id = m_rr_worker_id;
             while (!m_done && !pushed)
@@ -122,9 +123,6 @@ public:
                 if (!pushed && m_wait_time != BusyWait)
                 {
                     std::this_thread::sleep_for(std::chrono::microseconds(m_wait_time));
-                    // increment the round robin index every time we use it
-                    // but not when busy waiting
-                    m_rr_worker_id = (m_rr_worker_id+1)%m_number_of_workers;
                 }
             }
         }
@@ -134,7 +132,7 @@ public:
             while (!m_queues[worker_id].bounded_push(arg))
             {
                 // queue is full, wait/busy wait until queue has space
-                if ( m_wait_time != BusyWait)
+                if (m_wait_time != BusyWait)
                 {
                     std::this_thread::sleep_for(std::chrono::microseconds(m_wait_time));
                 }
@@ -155,6 +153,9 @@ public:
         {
             // no affinity, find a free queue
             bool pushed = false;
+            // increment the round robin index every time we use it
+            m_rr_worker_id = (m_rr_worker_id+1)%m_number_of_workers;
+
             for (auto i = 0; i < m_number_of_workers; ++i)
             {
                 // dont always start from firts q
@@ -166,9 +167,6 @@ public:
                     break;
                 }
             }
-
-            // increment the round robin index every time we use it
-            m_rr_worker_id = (m_rr_worker_id+1)%m_number_of_workers;
 
             return pushed;
         }
@@ -182,6 +180,11 @@ public:
     //! stop all threads, may or may not wait to finish
     void stop(bool wait=false)
     {
+        if (m_done)
+        {
+            return;
+        }
+
         // dont allow new submitions
         m_done = true;
         
