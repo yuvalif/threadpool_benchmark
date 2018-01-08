@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# get thread pool implementations to be benchmarked
+
 cd ..
 git clone https://github.com/vit-vit/CTPL.git
 git clone https://github.com/henkel/threadpool.git
