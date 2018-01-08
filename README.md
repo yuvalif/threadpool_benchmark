@@ -6,8 +6,8 @@ The following implementations are tested:
 * https://github.com/vit-vit/CTPL
 * https://github.com/henkel/threadpool (also from here: http://threadpool.sourceforge.net/index.html)
 * https://github.com/progschj/ThreadPool
-* http://www.boost.org/doc/libs/1_62_0/doc/html/thread/synchronization.html#thread.synchronization.executors (no need to clone, but exists only from boost 1.56)
-* `thread_pool.hpp` using boost thread_group and asio. Based on: http://stackoverflow.com/questions/12215395/thread-pool-using-boost-asio code from Tanner Sansbury (no need to clone copied into this project)
+* http://www.boost.org/doc/libs/1_62_0/doc/html/thread/synchronization.html#thread.synchronization.executors (no need to clone, but exists only from boost 1.56 and up)
+* `thread_pool.hpp` using `boos::thread_group` and asio. Based on: http://stackoverflow.com/questions/12215395/thread-pool-using-boost-asio code from Tanner Sansbury (no need to clone as code is copied into this project)
 
 To build: `clang++ -std=c++11 -O3 -Wall -o benchmark_pool benchmark_pool.cpp -lpthread -lboost_thread -lboost_system`
 (also works with g++).
