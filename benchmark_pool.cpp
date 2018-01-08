@@ -57,26 +57,6 @@ void CountIfPrimeBoost(unsigned long n, std::atomic<unsigned long>& count)
 	if (IsPrime(n)) ++count;
 }
 
-struct PrimeArg
-{
-    PrimeArg() :
-        _n(0), _count(nullptr) {}
-
-    PrimeArg(unsigned long n, std::atomic<unsigned long>* count) :
-        _n(n), _count(count) {}
-
-    unsigned long _n;
-    std::atomic<unsigned long>* _count;
-};
-
-
-// check if a number is prime and accumulate into a counter - thred safe
-void CountIfPrimeArg(const PrimeArg& arg)
-{
-    if (arg._count == nullptr) return;
-	if (IsPrime(arg._n)) ++*(arg._count);
-}
-
 unsigned long count_primes_asio(const std::vector<unsigned long>& random_inputs, unsigned int NUMBER_OF_PROCS)
 {
     std::atomic<unsigned long> number_of_primes(0);
