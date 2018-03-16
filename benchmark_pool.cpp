@@ -8,9 +8,9 @@
 #include <iostream>
 #include <chrono>   // for time calculations
 // thread libraries to be tested
-#include "../CTPL/ctpl.h" // for testing CPTL thread pool
-#include "../threadpool/boost/threadpool.hpp" // for testing old boost thread pool (by Philippe Henkel)
-#include "../ThreadPool/ThreadPool.h" // for testing thread pool using Jakob Progsch's thread pool
+#include "CTPL/ctpl.h" // for testing CPTL thread pool
+#include "threadpool/boost/threadpool.hpp" // for testing old boost thread pool (by Philippe Henkel)
+#include "ThreadPool/ThreadPool.h" // for testing thread pool using Jakob Progsch's thread pool
 #if BOOST_VERSION > 105600
 #include <boost/thread/executors/basic_thread_pool.hpp> // for testing new boost thread pool. available from ver 1.56 and up
 #endif
