@@ -1,0 +1,39 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/freebsd11"
+  
+  # get number of available processors 
+  require 'etc'
+  number_of_procs = Etc.nprocessors
+
+  # use libvirt
+  config.vm.provider "libvirt" do |lv|
+    # Customize the amount of memory on the VM:
+    lv.memory = "1024"
+    lv.cpus = number_of_procs
+  end
+
+  # machine level provisioning 
+  config.vm.provision "shell", inline: <<-SHELL
+    env PAGER=cat freebsd-update fetch
+    env PAGER=cat freebsd-update install
+    env ASSUME_ALWAYS_YES=YES pkg install git
+    env ASSUME_ALWAYS_YES=YES pkg install gcc
+    env ASSUME_ALWAYS_YES=YES pkg install boost-all
+  SHELL
+  
+  # application level provisioning 
+  config.vm.provision "shell", args: number_of_procs, privileged: false, inline: <<-SHELL
+    if [ ! -d "threadpool_benchmark" ]; then
+        git clone https://github.com/yuvalif/threadpool_benchmark.git
+    fi
+    cd threadpool_benchmark
+    git pull
+    ./fetch_dependencies.sh
+    make
+    ./run_benchmark.sh 100000 $1
+  SHELL
+end
+
