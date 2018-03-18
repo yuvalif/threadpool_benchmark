@@ -9,6 +9,9 @@
 #include <chrono>   // for time calculations
 // thread libraries to be tested
 #include "CTPL/ctpl.h" // for testing CPTL thread pool
+#if BOOST_VERSION < 105000
+#define TIME_UTC_ TIME_UTC
+#endif
 #include "threadpool/boost/threadpool.hpp" // for testing old boost thread pool (by Philippe Henkel)
 #include "ThreadPool/ThreadPool.h" // for testing thread pool using Jakob Progsch's thread pool
 #if BOOST_VERSION > 105600
