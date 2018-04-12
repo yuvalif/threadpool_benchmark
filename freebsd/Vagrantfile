@@ -33,7 +33,6 @@ Vagrant.configure("2") do |config|
     git pull
     ./fetch_dependencies.sh
     make
-    ./run_benchmark.sh 100000 $1
   SHELL
 end
 
